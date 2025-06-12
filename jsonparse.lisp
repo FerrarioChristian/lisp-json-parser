@@ -4,18 +4,18 @@
 ;
 
 (defun jsonparse (JSONString)
-  (if (not (stringp JSONString)) (error "Errore nella lettura del file.")
+  (if (not (stringp JSONString)) (error "File read error.")
       (let ((list (removespecialchars (coerce JSONString 'list))))
         (cond ((and (eq (car list) #\{) (eq (car (last list)) #\}))
                (cons 'jsonobj (parsemembers (removebrackets list) nil 0 0))) 
               ((and (eq (car list) #\[) (eq (car (last list)) #\])) 
                (cons 'jsonarray (arrayparse (removebrackets list) nil 0 0)))
-              (T (error "Errore di sintassi."))))))
+              (T (error "Syntax error."))))))
 
 (defun parsemembers (tokenlist accumulator aperte chiuse)
   (cond ((and (null tokenlist) (null accumulator)) nil)
         ((null tokenlist) (list (parsepair accumulator)))
-        ((eq (car (last tokenlist)) #\,) (error "Argomento mancante."))
+        ((eq (car (last tokenlist)) #\,) (error "Missing argument."))
         ((and (eq (car tokenlist) #\,) (= aperte chiuse))
          (cons (parsepair accumulator)
                (parsemembers (cdr tokenlist) nil aperte chiuse)))
@@ -49,13 +49,13 @@
          (cons
           'jsonarray 
           (arrayparse (removebrackets value) nil 0 0)))
-        ((not (eq (cdr value) nil)) (error "Valore non accettato."))
+        ((not (eq (cdr value) nil)) (error "Value not accepted."))
         ((stringp (car value)) (car value))
         ((numberp (car value)) (car value))
-        (T (error "Valore non accettato."))))
+        (T (error "Value not accepted."))))
 
 (defun arrayparse (tokenlist accumulator aperte chiuse)
-  (cond ((eq (car (last tokenlist)) #\,) (error "Argomento mancante."))
+  (cond ((eq (car (last tokenlist)) #\,) (error "Missing argument."))
         ((and (null tokenlist) (null accumulator)) nil)
         ((null tokenlist) (list (parsevalue accumulator)))
         ((and (eq (car tokenlist) #\,) (= aperte chiuse))
@@ -73,7 +73,7 @@
          (arrayparse (cdr tokenlist)
                      (arraypush (car tokenlist) accumulator)
                      aperte chiuse))
-        (T (error "Errore di sintassi."))))
+        (T (error "Syntax error."))))
 
 (defun removespecialchars (list)
   (remove-if (lambda (x) (member x '(#\Return #\Space #\Newline #\Tab)))
@@ -108,7 +108,7 @@
          (processsubstrings (cdr charlist)
                             (arraypush (car charlist) accumulator)
                             (+ 1 counter)))
-        (T (error "Errore di sintassi."))))
+        (T (error "Syntax error."))))
 
 
 (defun processnumbers (elements accumulator)
@@ -134,7 +134,7 @@
           (null (isnumber (cadr elements))))
          (cons (car elements)
                (processnumbers (cdr elements) accumulator)))
-        (T (error "Errore di sintassi."))))
+        (T (error "Syntax error."))))
 
 (defun stringtonumber (string)
   (if (null (find #\. string))
