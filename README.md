@@ -1,68 +1,61 @@
-## Funzioni del Progetto
+# Common Lisp JSON Parser
 
-### jsonparse
+Custom, dependency-free JSON parser and serializer written entirely in Common Lisp.
 
-La funzione `jsonparse` accetta una stringa di dati JSON come input e tenta di parsarla in una struttura di dati Common Lisp. Se l'input non è una stringa, la funzione restituisce il messaggio di errore "Errore nella lettura del file!". La funzione converte la stringa di input in una lista di caratteri e rimuove eventuali caratteri speciali utilizzando la funzione `removespecialchars`.
+This project implements a recursive descent parser from scratch, providing a practical exploration of compiler theory concepts within a purely functional paradigm. It manually handles the entire pipeline: from character-level tokenization and cleaning, to recursive state tracking for balancing nested structures, and finally evaluating the tokenized input into native Lisp data types. The parsing logic relies heavily on pattern matching and recursive function calls rather than iterative loops, highlighting the strengths of Common Lisp for symbolic computation and low-level text processing.
 
-La funzione quindi controlla il primo e l'ultimo carattere della lista per determinare se si tratta di un oggetto o di un array. Se il primo e l'ultimo carattere sono parentesi graffe `{}`, chiama la funzione `parsemembers` e rimuove le parentesi. Se il primo e l'ultimo carattere sono parentesi quadre `[]`, chiama la funzione `arrayparse` e rimuove le parentesi. Se il primo e l'ultimo carattere non sono parentesi graffe o quadre, la funzione restituisce il messaggio di errore "Errore di sintassi".
 
-### parsemembers
+## Key Features
 
-La funzione `parsemembers` accetta come input una lista di token, un accumulatore e due interi (`aperte` e `chiuse`). 
-- Se la lista di token e l'accumulatore sono entrambi nulli, restituisce `nil`.
-- Se solo la lista di token è nulla, restituisce la coppia parsata.
-- Se l'ultimo token è una virgola e l'accumulatore è nullo, genera un messaggio di errore "Argomento mancante!".
-- Se il token è una virgola e il valore di `aperte` è uguale a `chiuse`, restituisce la coppia parsata e chiama la funzione `parsemembers` sul resto della tokenlist.
-- Se il token è una parentesi quadra aperta o una parentesi graffa aperta, chiama la funzione `parsemembers` sul resto della tokenlist.
-- Se il token è una parentesi quadra chiusa o una parentesi graffa chiusa, chiama la funzione `parsemembers` sul resto della lista di token e invia il token all'accumulatore e incrementa il contatore `chiuse`.
-- Se l'accumulatore è nullo o il valore di `aperte` non è uguale a `chiuse`, chiama la funzione `parsemembers` sul resto della tokenlist.
+- **Full JSON Parsing:** Parses stringified JSON objects (`{...}`) and arrays (`[...]`) into tagged Common Lisp lists (`jsonobj` and `jsonarray`).
+- **Data Access API:** Provides a straightforward querying function to traverse nested JSON structures dynamically.
+- **File I/O Operations:** Read JSON directly from files and serialize (dump) Lisp data structures back into formatted JSON files.
+- **Pure Functional Approach:** Leverages heavy recursion, pattern matching, and list processing instead of imperative loops.
 
-### parsepair
+## Core API & Functions
 
-La funzione `parsepair` accetta una lista di token come input e restituisce una coppia di una stringa e un valore.
-- Se la lista di token è nulla, la funzione restituisce `nil`.
-- Se il primo token non è una stringa, la funzione genera il messaggio di errore "Attributo non una stringa!".
-- Se il secondo token non è ":", la funzione genera il messaggio di errore "Non è una coppia!".
-- Se il primo token è una stringa e il secondo token è ":", la funzione restituisce una lista contenente il primo token come chiave e il risultato della chiamata della funzione `parsevalue` sul resto della lista token come valore.
+Below is a synthesized overview of the main functions driving the parser, demonstrating the recursive descent approach used to evaluate tokens.
 
-### parsevalue
+### Data Ingestion & Extraction
+- `(jsonparse json-string)`: The main entry point. It cleans the input string, identifies whether the root is an object (`{}`) or an array (`[]`), and delegates to the appropriate recursive parser (`parsemembers` or `arrayparse`).
+- `(jsonread filename)`: Reads a file character-by-character into a string and automatically passes it to `jsonparse`.
+- `(jsondump jsonobj filename)`: Serializes a parsed Lisp JSON structure back into a valid JSON string and writes it out to the specified file.
 
-La funzione `parsevalue` accetta una lista di token come input.
-- Se il primo token è una parentesi graffa di apertura e l'ultimo token è una parentesi graffa di chiusura, la funzione chiama la funzione `parsemembers` e rimuove le parentesi.
-- Se il primo token è una parentesi quadra aperta e l'ultimo token è una parentesi quadra chiusa, la funzione chiama la funzione `arrayparse` e rimuove le parentesi.
-- Se il resto della tokenlist non è vuoto, la funzione lancia il messaggio di errore "valore non accettato!"
-- Se il primo token è una stringa, la funzione restituisce il primo token.
-- Se il primo token è un numero, la funzione restituisce il primo token.
-- Se il primo token non è una stringa o un numero, la funzione lancia il messaggio di errore "valore non accettato!"
+### Querying Data
+- `(jsonaccess obj &rest fields)`: A dynamic accessor function. Pass a parsed JSON object and a sequence of keys (strings for objects, integers for arrays) to traverse deep into nested structures and retrieve the target value.
 
-### arrayparse
+### Internal Parsing Logic (Recursive Descent)
+- `parsemembers` & `arrayparse`: The core recursive engines. They iterate through a list of tokens (characters), balancing open and closed brackets (`{`, `}`, `[`, `]`). When a complete inner structure or a comma is detected, they split the tokens and recursively evaluate the separated parts.
+- `parsepair`: Expects a key-value format separated by a colon (`:`). It extracts the string key and defers the value evaluation to `parsevalue`.
+- `parsevalue`: Determines the type of a value (nested object, nested array, string, or number) and returns the corresponding parsed Lisp primitive or recursively calls the object/array parsers.
 
-La funzione `arrayparse` accetta come input una lista di token, un accumulatore e due interi (`aperte` e `chiuse`).
-- La funzione controlla la fine della lista di token, se la lista di token e l'accumulatore sono entrambi nulli, restituisce `nil`.
-- Se solo la lista di token è nulla, restituisce il valore parsato.
-- Se l'ultimo token è una virgola e l'accumulatore è nullo, genera il messaggio di errore "Manca argomento!".
-- Se il token è una virgola e il valore di `aperte` è uguale a `chiuse`, restituisce il valore parsato e chiama la funzione `arrayparse` sul resto della tokenlist.
-- Se il token è una parentesi aperta o una parentesi quadra aperta, chiama la funzione `arrayparse` sul resto della lista di token e invia il token all'accumulatore e agli incrementi il valore delle `aperte`.
-- Se il token è una parentesi di chiusura o una parentesi quadra di chiusura, chiama la funzione `arrayparse` sul resto della tokenlist e invia il token all'accumulatore e incrementa il valore di `chiuse`.
-- Se l'accumulatore è nullo o il valore di `aperte` non è uguale a `chiuse`, continua a chiamare la funzione `arrayparse` sul resto della tokenlist.
-- Se nessuna di queste condizioni è soddisfatta, genera il messaggio di errore "Errore di sintassi".
+### Tokenization & Cleaning
+- Functions like `removespecialchars`, `processsubstrings`, and `processnumbers` work together to clean raw input by removing whitespace outside of strings, grouping characters enclosed in quotes into valid Lisp strings, and parsing numeric characters into integers or floats.
 
-### jsonaccess
+## Getting Started
 
-La funzione `jsonaccess` consente di accedere ai campi di un oggetto JSON. Prende in input un oggetto JSON, un campo opzionale e una serie di campi opzionali.
-- Se non viene specificato alcun campo, la funzione restituirà l'intero oggetto JSON.
-- Se il primo campo specificato è un numero, la funzione accederà all'elemento dell'array JSON corrispondente.
-- Se il primo campo specificato è una stringa, la funzione accederà al campo dell'oggetto JSON corrispondente.
-- Se vengono specificati più campi, la funzione accederà ai campi successivi nidificati all'interno del primo campo specificato.
+### Prerequisites
+You need a Common Lisp implementation installed on your system, such as **SBCL** (Steel Bank Common Lisp) or **CLISP**.
 
-### processsubstrings
+### Loading the Project
 
-La funzione `processsubstrings` è utilizzata per elaborare una lista di caratteri, accumulando i caratteri che si trovano tra le virgolette e restituendo una stringa una volta che le virgolette vengono chiuse. Prende in input una lista di caratteri, un accumulatore vuoto e un contatore. Il contatore tiene traccia delle virgolette aperte e chiuse. Quando il contatore raggiunge 2, l'accumulatore viene convertito in una stringa e restituito.
+1. Clone the repository and navigate to the directory:
+   ```bash
+   git clone <your-repository-url>
+   cd lisp-json-parser
+   ```
 
-### processnumbers
+2. Open your Lisp REPL (e.g., by typing `sbcl` in the terminal).
 
-La funzione `processnumbers` prende in input tre parametri: `elements`, `accumulator` e `counter`.
-- Se sia `elements` che `accumulator` sono `null`, la funzione restituisce `nil`.
-- Se `elements` è `null` e `accumulator` contiene un valore, la funzione converte il valore in `accumulator` in un numero utilizzando la funzione `stringtonumber` e restituisce una lista contenente il numero convertito.
-- Se `elements` è una stringa, la funzione restituisce una lista contenente la stringa in `elements` e richiama la funzione sulla coda di `elements` e `accumulator`.
-- Se `elements` è un numero, la funzione aggiunge il numero in `elements` all'accumulatore e richiama la funzione sulla coda di `elements` e `accumulator`.
+3. Load the source file:
+   ```lisp
+   * (load "jsonparse.lisp")
+   ```
+
+4. Try parsing a string:
+   ```lisp
+   * (jsonparse "{\"name\": \"John\", \"age\": 30}")
+   ```
+   *Expected Output: `(JSONOBJ ("name" "John") ("age" 30))`*
+
+
